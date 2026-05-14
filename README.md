@@ -1,4 +1,4 @@
-# ingest_aws_s3_livingos
+# ingest_aws_s3
 
 Ingest pipeline — **AWS S3 → GCS Data Lake · Cloud Cost (AWS CUR)**
 
