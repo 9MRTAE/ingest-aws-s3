@@ -1,0 +1,76 @@
+name: ingest_aws_s3_livingos
+prefect-version: "3.0.0"
+
+# ── Shared defaults (YAML anchors) ────────────────────────────────────────────
+definitions:
+  work_pool: &work_pool
+    name: kubernetes-agent
+    work_queue_name: default
+    job_variables:
+      image: "{{ $PREFECT_IMAGE }}"
+      image_pull_secrets:
+        - gitlab-registry
+      service_account_name: prefect-server-agent
+      env:
+        CI_COMMIT_BRANCH: "{{ $CI_COMMIT_BRANCH }}"
+        JOB_BACKDATE:     "{{ $JOB_BACKDATE }}"
+        JOB_STARTDATE:    "{{ $JOB_STARTDATE }}"
+        JOB_ENDDATE:      "{{ $JOB_ENDDATE }}"
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+build: null
+push:  null
+pull:  null
+
+# ── Deployments ───────────────────────────────────────────────────────────────
+deployments:
+
+  - name: ingest_cloudcost_awscost
+    version: null
+    tags:
+      - aws
+      - s3
+      - cloudcost
+      - your-org-tag   # [SCRUBBED]
+    description: "ดึง AWS Cost ZIP โดยตรงจาก S3 → Transform → Load to GCS (Parquet)"
+    entrypoint: "flows/ingest_cloudcost_awscost.py:ingest_cloudcost_awscost"
+    parameters:
+      year: null      # null = ใช้ปีปัจจุบัน, หรือ override เช่น "2026"
+      month: null     # null = ใช้เดือนปัจจุบัน, หรือ override เช่น "02"
+    work_pool: *work_pool
+    schedules:
+      - cron: "0 18 * * *"
+        timezone: "Asia/Bangkok"
+        active: true
+
+  - name: ingest_cloudcost_awscost_1copy
+    version: null
+    tags:
+      - aws
+      - s3
+      - cloudcost
+      - your-org-tag   # [SCRUBBED]
+      - copy
+    description: "Step 1 — Copy raw ZIP จาก AWS S3 → GCS (raw bucket)"
+    entrypoint: "flows/ingest_cloudcost_awscost_1copy.py:ingest_cloudcost_awscost_1copy"
+    parameters:
+      year: null
+      month: null
+    work_pool: *work_pool
+    schedules: []
+
+  - name: ingest_cloudcost_awscost_2ingest
+    version: null
+    tags:
+      - aws
+      - s3
+      - cloudcost
+      - your-org-tag   # [SCRUBBED]
+      - ingest
+    description: "Step 2 — อ่าน CSV จาก GCS → Transform → Load to GCS (Parquet)"
+    entrypoint: "flows/ingest_cloudcost_awscost_2ingest.py:ingest_cloudcost_awscost_2ingest"
+    parameters:
+      year: null
+      month: null
+    work_pool: *work_pool
+    schedules: []

@@ -1,0 +1,11 @@
+.DS_Store
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+.idea
+.vscode
+README.md
+pom.xml
+Jenkinsfile
